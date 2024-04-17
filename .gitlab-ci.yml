@@ -1,0 +1,47 @@
+stages:
+  - deploy-step1
+  - deploy-step2
+
+deploy-step1:
+  stage: deploy-step1
+  image: rust:latest
+  script:
+    - apt-get update && apt-get install -y build-essential curl file git
+    - sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
+    - test -d ~/.linuxbrew && eval $(~/.linuxbrew/bin/brew shellenv)
+    - test -d /home/linuxbrew/.linuxbrew && eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+    - test -r ~/.bash_profile && echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.bash_profile
+    - echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.profile
+    - brew install zig
+    - brew tap cargo-lambda/cargo-lambda
+    - brew install cargo-lambda
+    - cd longest_word_identification
+    - export AWS_DEFAULT_REGION=us-east-1
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - cargo lambda build --release
+    - cargo lambda deploy
+  only:
+    - main  # or the branch you want to deploy from
+
+deploy-step2:
+  stage: deploy-step2
+  image: rust:latest
+  script:
+    - apt-get update && apt-get install -y build-essential curl file git
+    - sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
+    - test -d ~/.linuxbrew && eval $(~/.linuxbrew/bin/brew shellenv)
+    - test -d /home/linuxbrew/.linuxbrew && eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+    - test -r ~/.bash_profile && echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.bash_profile
+    - echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.profile
+    - brew install zig
+    - brew tap cargo-lambda/cargo-lambda
+    - brew install cargo-lambda
+    - cd counting_occurrences
+    - export AWS_DEFAULT_REGION=us-east-1
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - cargo lambda build --release
+    - cargo lambda deploy
+  only:
+    - main  # or the branch you want to deploy from
