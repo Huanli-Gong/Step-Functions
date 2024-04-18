@@ -1,47 +1,48 @@
 stages:
-  - deploy-step1
-  - deploy-step2
+  - word-frequency-stage
+  - frequent-words-stage
 
-deploy-step1:
-  stage: deploy-step1
+word-frequency-stage:
+  stage: word-frequency-stage
   image: rust:latest
   script:
-    - apt-get update && apt-get install -y build-essential curl file git
-    - sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
-    - test -d ~/.linuxbrew && eval $(~/.linuxbrew/bin/brew shellenv)
-    - test -d /home/linuxbrew/.linuxbrew && eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
-    - test -r ~/.bash_profile && echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.bash_profile
-    - echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.profile
-    - brew install zig
-    - brew tap cargo-lambda/cargo-lambda
-    - brew install cargo-lambda
-    - cd longest_word_identification
-    - export AWS_DEFAULT_REGION=us-east-1
+    - rustup default stable
+    - apt-get update && apt-get install -y wget unzip xz-utils
+    - wget https://ziglang.org/download/0.9.1/zig-linux-x86_64-0.9.1.tar.xz
+    - tar -xf zig-linux-x86_64-0.9.1.tar.xz -C /usr/local
+    - export PATH=$PATH:/usr/local/zig-linux-x86_64-0.9.1
+    - cargo install cargo-lambda
+    - apt-get install -y zip
+    - apt-get install -y musl-tools
+    - rustup target add x86_64-unknown-linux-musl
+    - cd word-frequency
     - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
     - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
     - cargo lambda build --release
     - cargo lambda deploy
   only:
-    - main  # or the branch you want to deploy from
+    - main
 
-deploy-step2:
-  stage: deploy-step2
+frequent-words-stage:
+  stage: frequent-words-stage
   image: rust:latest
   script:
-    - apt-get update && apt-get install -y build-essential curl file git
-    - sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
-    - test -d ~/.linuxbrew && eval $(~/.linuxbrew/bin/brew shellenv)
-    - test -d /home/linuxbrew/.linuxbrew && eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
-    - test -r ~/.bash_profile && echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.bash_profile
-    - echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.profile
-    - brew install zig
-    - brew tap cargo-lambda/cargo-lambda
-    - brew install cargo-lambda
-    - cd counting_occurrences
-    - export AWS_DEFAULT_REGION=us-east-1
+    - rustup default stable
+    - apt-get update && apt-get install -y wget unzip xz-utils
+    - wget https://ziglang.org/download/0.9.1/zig-linux-x86_64-0.9.1.tar.xz
+    - tar -xf zig-linux-x86_64-0.9.1.tar.xz -C /usr/local
+    - export PATH=$PATH:/usr/local/zig-linux-x86_64-0.9.1
+    - cargo install cargo-lambda
+    - apt-get install -y zip
+    - apt-get install -y musl-tools
+    - rustup target add x86_64-unknown-linux-musl
+    - cd frequent-words
     - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
     - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
     - cargo lambda build --release
     - cargo lambda deploy
   only:
-    - main  # or the branch you want to deploy from
+    - main
+    

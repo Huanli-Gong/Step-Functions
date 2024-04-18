@@ -1,88 +1,129 @@
-[![pipeline status](https://gitlab.com/dukeaiml/IDS721/zhankai_ye_mini_project_3/-/wikis/uploads/8b9be60c3dabf89331bc0c118cae1e44/pipeline.svg)](https://gitlab.com/dukeaiml/IDS721/zhankai_ye_individual_project_4/-/commits/main)
-# Rust AWS Lambda and Step Functions for Simple Text Analysis
-This project aims to develope a text data processing pipeline using two orchestrated lambda function: the `longest_word_identification` function identifies the longest word in the input sentence and the `counting_occurrences` function counts the occurrence of the longest words. The two lambda functions are coordinated in the State Machine of AWS Step Funtions.
+# Rust AWS Lambda and Step Functions
 
 ## Goals
-* Rust AWS Lambda function
-* Step Functions workflow coordinating Lambdas
-* Orchestrate data processing pipeline
+- Rust AWS Lambda function
+- Step Functions workflow coordinating Lambdas
+- Orchestrate data processing pipeline
 
-## Steps
-### Step 1: Create Lambda Functions
-1. Initializing new AWS Lambda project in Rust using command line `cargo lambda new <PROJECT_NAME>` in terminal.
-```
-cargo lambda new longest_word_identification
-```
-```
-cargo lambda new counting_occurrences
-```
-2. Add necessary dependencies to `Cargo.toml` file.
-3. Add functional implementations and inference endpoint in `main.rs` file.
-4. Create the .json files and put at their corresponding project directory for local testing:
-* input.json
-```
-{"data": "The brown fox quickly jumps over the lazy dog, then the dog flees away quickly."}
-```
-* input2.json
-```
-{"longest_word":"quickly","original_text":"The brown fox quickly jumps over the lazy dog, then the dog flees away quickly."}
-```
-5. Test these two lambda functions locally by running:
-```
-cd longest_word_identification
-cargo lambda watch
-cargo lambda invoke --data-file input.json
-```
-```
-cd counting_occurrences
-cargo lambda watch
-cargo lambda invoke --data-file input2.json
-```
-### Step 2: Deploy Lambda Functions to AWS
-1. After succesfully testing the lambda functions, push these functions to the Gitlab.
-2. Set the AWS access variable in `Settings` -> `CI/CD`.
-3. Add the `.gitlab-ci.yml` file. Then, it will automatically deploy the lambda functions to AWS.
+## Rust Lambda Functionality
+This project comprises two AWS Lambda functions designed to process textual data for word frequency analysis: `word-frequency` and `frequent-words`. Each function is tailored to perform specific tasks related to word counting and frequency analysis.
 
-### Step 3: Orchestrate Step Functions Pipeline
-1. Open the AWS Management Console and navigate to the AWS Step Functions page.
-2. Create a new state machine in AWS Step Functions. Choose `AWS Lambda Invoke`.
-3. Define the state machine as follows:
-```
-{
-  "Comment": "A simple AWS Step Functions state machine that coordinates two lambda functions.",
-  "StartAt": "longest_word_identification",
-  "States": {
-    "longest_word_identification": {
-      "Type": "Task",
-      "Resource": "arn:aws:lambda:us-east-1:590183895316:function:longest_word_identification",
-      "Next": "counting_occurrences"
-    },
-    "counting_occurrences": {
-      "Type": "Task",
-      "Resource": "arn:aws:lambda:us-east-1:590183895316:function:counting_occurrences",
-      "End": true
-    }
-  }
-}
-```
-4. Click `Start Execution` to test the pipeline with the input:
-```
-{"data": "The brown fox quickly jumps over the lazy dog, then the dog flees away quickly."}
-```
-
-## Results
-### Lambda Functions
-* longest_word_identification
-![lambda_1](https://gitlab.com/dukeaiml/IDS721/step_functions/-/wikis/uploads/9b766741431119fa21ec18fa265290f6/lambda_1.png)
-* counting_occurrences
-![lambda_2](https://gitlab.com/dukeaiml/IDS721/step_functions/-/wikis/uploads/4803dbf93024d2968a5ef1a79021658f/lambda_2.png)
-
-### State Machine
-![state_machine_1](https://gitlab.com/dukeaiml/IDS721/step_functions/-/wikis/uploads/ddfd04635821f3f70ca6b5253c04bc54/state_machine_1.png)
-* Execution Graph
-![state_machine_2](https://gitlab.com/dukeaiml/IDS721/step_functions/-/wikis/uploads/31d4537c12f37c49d992aa2cee245b09/state_machine_2.png)
-* Log showing succesfull deployment and execution
-![state_machine_3](https://gitlab.com/dukeaiml/IDS721/step_functions/-/wikis/uploads/a82b7ebf59dd23c4a5f778392a2f4c19/state_machine_3.png)
 
 ## Demo
-![demo_individual_4](https://gitlab.com/dukeaiml/IDS721/step_functions/-/wikis/uploads/46617b0e1df56e6ae019b706a4719647/demo_individual_4.mov)
+![Video Demo](./video.mp4)
+
+## Project Steps
+### Create Rust Lambda Project
+1. Use `cargo lambda new <PROJECT_NAME>` to create lambda project.
+2. Add necessary dependencies to `Cargo.toml`.
+3. Implement functions in `main.rs`.
+
+### Data Processing Pipeline
+1. word-frequency
+- Functionality: This function processes raw text input to count the frequency of each word. It uses regular expressions to identify and count words in the text.
+- Input: a JSON payload containing a single string of text under the key input.
+- Output: a JSON object with a `HashMap` where each key is a word and the value is the frequency of that word in the input text.
+2. frequent-words
+- Functionality: This function analyzes a given set of word counts and determines the top 10% most frequent words. It uses a min-heap to efficiently filter and return these words.
+- Input: a JSON payload with a `HashMap<String, usize>` representing word counts where the string represents the word, and usize is the count of occurrences.
+- Output: a JSON array containing only the top 10% frequent words sorted in descending order of frequency.
+### Test Locally
+1. Use `cargo lambda watch` to test lambda functions locally. To test my function, please follow the commands:
+   ```
+   cd word-frequency
+   cargo lambda watch
+   cargo lambda invoke --data-file input.json
+   ```
+   ```
+   cd frequent-words
+   cargo lambda watch
+   cargo lambda invoke --data-file input.json
+   ```
+### Deploy on AWS Lambda
+1. Create a role with policies `AWSLambda_FullAccess`, `AWSLambdaBasicExecutionRole`, `IAMFullAccess`.
+2. Obtain the binary file by building the project:
+    ```
+    cargo lambda build --release
+    ```
+3. Make sure to set up the AWS configuration and deploy by:
+    ```
+    cargo lambda deploy --region <REGION> --iam-role <ROLE_ARN>
+    ```
+Then you can check your AWS Lambda function on AWS Lambda.
+
+### Build GitLab CI/CD
+Create `.gitlab-ci.yml` to build a CI/CD pipeline to build and deploy the Rust Lambda to AWS. Here is the part of my `.gitlab-ci.yml` to build CI/CD pipeline:
+```yml
+stages:
+  - word-frequency-stage
+  - frequent-words-stage
+
+word-frequency-stage:
+  stage: word-frequency-stage
+  image: rust:latest
+  script:
+    - rustup default stable
+    - apt-get update && apt-get install -y wget unzip xz-utils
+    - wget https://ziglang.org/download/0.9.1/zig-linux-x86_64-0.9.1.tar.xz
+    - tar -xf zig-linux-x86_64-0.9.1.tar.xz -C /usr/local
+    - export PATH=$PATH:/usr/local/zig-linux-x86_64-0.9.1
+    - cargo install cargo-lambda
+    - apt-get install -y zip
+    - apt-get install -y musl-tools
+    - rustup target add x86_64-unknown-linux-musl
+    - cd word-frequency
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+    - cargo lambda build --release
+    - cargo lambda deploy
+  only:
+    - main
+
+frequent-words-stage:
+  stage: frequent-words-stage
+  image: rust:latest
+  script:
+    - rustup default stable
+    - apt-get update && apt-get install -y wget unzip xz-utils
+    - wget https://ziglang.org/download/0.9.1/zig-linux-x86_64-0.9.1.tar.xz
+    - tar -xf zig-linux-x86_64-0.9.1.tar.xz -C /usr/local
+    - export PATH=$PATH:/usr/local/zig-linux-x86_64-0.9.1
+    - cargo install cargo-lambda
+    - apt-get install -y zip
+    - apt-get install -y musl-tools
+    - rustup target add x86_64-unknown-linux-musl
+    - cd frequent-words
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+    - cargo lambda build --release
+    - cargo lambda deploy
+  only:
+    - main
+    
+
+```
+
+### Build Corresponding Step Functions
+1. Create a new State Machine in AWS Step Functions with a blank template.
+2. Implement the workflow coordinating the specific execution process of lambda functions. Here is my definition of the state machine:
+    ```json
+    {
+        "Comment": "A AWS Step Functions state machine to extract the words with the highest frequency.",
+        "StartAt": "word-frequency-stage",
+        "States": {
+            "word-frequency-stage": {
+                "Type": "Task",
+                "Resource": "<FIRST_LAMBDA_ARN>",
+                "Next": "FilterHighFrequency"
+            },
+            "frequent-words-stage": {
+                "Type": "Task",
+                "Resource": "<SECOND_LAMBDA_ARN>",
+                "End": true
+            }
+        }
+    }
+    ```
+3. Execute the state machine with input to test if the workflow can work correctly.
