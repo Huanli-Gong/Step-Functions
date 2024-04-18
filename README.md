@@ -110,7 +110,7 @@ frequent-words-stage:
 2. Implement the workflow coordinating the specific execution process of lambda functions. Here is my definition of the state machine:
     ```json
     {
-        "Comment": "A AWS Step Functions state machine to extract the words with the highest frequency.",
+        "Comment": "An AWS Step Functions state machine to extract the words with the highest frequency.",
         "StartAt": "word-frequency-stage",
         "States": {
             "word-frequency-stage": {
